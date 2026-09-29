@@ -64,6 +64,19 @@ import frc.robot.util.GameState;
 import frc.robot.subsystems.Extension;
 import frc.robot.subsystems.Limelight;
 import frc.robot.Vision.LimelightHelpers;
+
+
+
+
+
+
+
+
+
+
+
+// import frc.robot.subsystems.kidIntake;
+
 // import frc.robot.subsystems.LEDState;
 
 public class RobotContainer {
@@ -84,6 +97,7 @@ public class RobotContainer {
 
 
     private final Telemetry logger = new Telemetry(MaxSpeed);
+
 
     private final CommandXboxController m_driver = new CommandXboxController(0);
     JoystickButton AutoAlign = new JoystickButton(m_driver.getHID(), 3);
@@ -108,6 +122,14 @@ public class RobotContainer {
     private final Belt m_belt = new Belt();
     private final Shooter m_shooter = new Shooter();
     private final Hood m_hood = new Hood();
+
+
+
+    // private final kidIntake m_KidIntake = new kidIntake();
+
+
+
+
     // private final LED m_LED = new LED();
     // private final Candle m_leds = new Candle();
     private final GameState gameState = new GameState();
@@ -161,6 +183,7 @@ public class RobotContainer {
                 m_pivot
             ).withTimeout(5) //how long to run it
         );
+        NamedCommands.registerCommand("Intake", new InstantCommand(m_pivot::IntakeOn));
         NamedCommands.registerCommand("PivotDownAndIntake7s", new RunCommand(
                 () -> m_pivot.setPivotDownFast(), //what to run while active
                 m_pivot
@@ -271,10 +294,51 @@ public class RobotContainer {
             .whileTrue(
                 new ParallelCommandGroup(
                 new TeleopShootCommand(drivetrain, m_limelight, m_shooter, m_hood, m_belt, m_pivot, () -> !(m_operator.getRawAxis(1) > Constants.TRIGGER_DEADBAND && groundIntakeShakeButton.getAsBoolean())))
+                
             )
             .onFalse(
                 new InstantCommand(m_shooter::off, m_shooter)
             );
+        
+        m_driver.leftBumper()
+            .whileTrue(
+                new ParallelCommandGroup(
+                    drivetrain.applyRequest(() -> {
+                        double rotationOutput = 0;
+                        double deadband = Constants.DRIVER_DEADBAND;
+
+                        double translationX = MathUtil.applyDeadband(m_driver.getLeftY(), deadband);
+                        double translationY = MathUtil.applyDeadband(m_driver.getLeftX(), deadband);
+
+                        boolean hasTarget = LimelightHelpers.getTV("limelight");
+                        //select correct pipeline for prope r offsets
+                         if (hasTarget) {
+                            double tx = getFilteredTX();
+
+                            double kP = Constants.AIM_kP;
+                            rotationOutput = tx * -kP * MaxAngularRate;
+                        } else {
+                            rotationOutput = -m_driver.getRightX() * MaxAngularRate;
+                        }
+
+                        return aimRequest
+                            .withVelocityX(-translationX * MaxSpeed)
+                            
+                            .withVelocityY(-translationY * MaxSpeed)
+                            .withRotationalRate(rotationOutput);
+                        }),
+
+                    new AimAndSpinUpCommand(m_limelight, m_shooter, m_hood),
+                    new InstantCommand(m_belt:: intake, m_belt)
+                )
+            )
+            //When left bumper is released, turn off shooter, LED's show no longer ready to shoot
+            .onFalse(
+                new ParallelCommandGroup(
+                new InstantCommand(m_shooter::off, m_shooter),
+                new InstantCommand(m_belt:: off, m_belt)
+                )
+        );
 
 
 
@@ -315,15 +379,24 @@ public class RobotContainer {
 
 
 
+
+
+        // m_operator.button(7).whileTrue( new InstantCommand(m_KidIntake::pivotup, m_KidIntake)).onFalse(new InstantCommand(m_KidIntake::pivotStop));
+
+
+
+
         // groundIntakeButton.whileTrue(new InstantCommand(m_pivot :: pivotDown)).onFalse(new InstantCommand(m_pivot::off));
         
         //operator intake controls
-        m_operator.axisGreaterThan(5, Constants.TRIGGER_DEADBAND).whileTrue(new RunCommand(m_pivot::setPivotDown, m_pivot)).onFalse(new InstantCommand(m_pivot::off, m_pivot)); 
-        m_operator.axisLessThan(5, -Constants.TRIGGER_DEADBAND).whileTrue(new RunCommand(m_pivot::setPivotUp, m_pivot)).onFalse(new InstantCommand(m_pivot::off, m_pivot)); 
+        // m_operator.axisGreaterThan(5, Constants.TRIGGER_DEADBAND).whileTrue(new RunCommand(m_pivot::setPivotDown, m_pivot)).onFalse(new InstantCommand(m_pivot::off, m_pivot)); 
+        // m_operator.axisLessThan(5, -Constants.TRIGGER_DEADBAND).whileTrue(new RunCommand(m_pivot::setPivotUp, m_pivot)).onFalse(new InstantCommand(m_pivot::off, m_pivot)); 
 
         m_operator.axisGreaterThan(1, Constants.TRIGGER_DEADBAND).whileTrue(new RunCommand(m_pivot::setPivotDown, m_pivot)).onFalse(new InstantCommand(m_pivot::off, m_pivot)); 
         m_operator.axisLessThan(1, -Constants.TRIGGER_DEADBAND).whileTrue(new RunCommand(m_pivot::setPivotUp, m_pivot)).onFalse(new InstantCommand(m_pivot::off, m_pivot)); 
-        //groundIntakeShakeButton.whileTrue(new RunCommand(m_pivot::shooting, m_pivot)); //RB to shake
+
+        m_driver.button(7).whileTrue(new RunCommand(m_pivot::IntakeOn, m_pivot)).onFalse(new InstantCommand(m_pivot::off, m_pivot));
+        groundIntakeShakeButton.whileTrue(new RunCommand(m_pivot::shooting, m_pivot)); //RB to shake
         //Belt unjam
         m_operator.leftBumper().onTrue(new InstantCommand(m_belt:: jammed)).onFalse(new InstantCommand(m_belt:: off));
         //Operator shoots balls
@@ -362,13 +435,15 @@ public class RobotContainer {
         //setpoint for shooting close to hub
         m_operator.button(4).onTrue(new InstantCommand(() -> m_hood.setAngle(78.0), m_hood));
 
-        m_operator.button(4).whileTrue(new RunCommand(() -> m_shooter.shoot(1760), m_shooter));
+        m_operator.button(4).whileTrue(new RunCommand(() -> m_shooter.shoot(1660), m_shooter));
+        m_operator.pov(90).whileTrue(new RunCommand(() -> m_belt.intake()));
         
         m_operator.button(4).onFalse(new InstantCommand(() -> m_shooter.off(), m_shooter));
 
+
         //setpoint for testing
-        m_operator.button(1).onTrue(new InstantCommand(() -> m_hood.setAngle(78), m_hood));
-        m_operator.button(1).whileTrue(new RunCommand(() -> m_shooter.shoot(1000), m_shooter));
+        m_operator.button(1).onTrue(new InstantCommand(() -> m_hood.setAngle(75), m_hood));
+        m_operator.button(1).whileTrue(new RunCommand(() -> m_shooter.shoot(800), m_shooter));
         m_operator.button(1).whileTrue(new RunCommand(() -> m_belt.intake(), m_belt));
         m_operator.button(1).onFalse(new InstantCommand(() -> m_shooter.off(), m_shooter));
         m_operator.button(1).onFalse(new InstantCommand(() -> m_belt.off(), m_belt));

@@ -37,7 +37,7 @@ public class RobotStateEstimator extends SubsystemBase {
             doRejectUpdate = true;
         }
         SmartDashboard.putNumber("avgTagDist", mt1.avgTagDist);
-        if (mt1.avgTagDist > 2) {
+        if (mt1.avgTagDist > 3) {
             doRejectUpdate = true;
         }
         if (!doRejectUpdate) {

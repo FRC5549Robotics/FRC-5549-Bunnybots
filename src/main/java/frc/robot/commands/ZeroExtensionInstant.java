@@ -35,5 +35,6 @@ public class ZeroExtensionInstant extends Command {
     public void end(boolean interrupted) {
         //extension.stop();
         extension.zeroEncoder();
+        System.out.println("extension zeroed");
     }
 }

@@ -184,7 +184,7 @@ public final class Constants {
   //   public static final double Y_TOLERANCE_REEF_ALIGNMENT = 0.01;
 
   //Belt Constants
-    public static final int BELT_MOTOR_ID = 18;
+    // public static final int BELT_MOTOR_ID = 18;
 
   //GroundIntake Constants
     public static final int PIVOT_MOTOR_ID = 18;

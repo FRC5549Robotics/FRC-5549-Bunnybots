@@ -28,6 +28,7 @@ public class AimAndSpinUpCommand extends Command {
         if (distance <= 0) {
             return;
         }
+        
 
         ShooterState shot = ShooterLookup.get(distance);
         //SmartDashboard.putNumber("Target Pos", shot.hoodAngleDeg);

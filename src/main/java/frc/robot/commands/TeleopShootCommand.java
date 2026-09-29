@@ -79,6 +79,8 @@ public class TeleopShootCommand extends Command {
    }
     
    private final double MaxSpeed = 4.5;
+   // Switch from odometry aiming to Limelight aiming when this close to the Hub
+   private static final double LIMELIGHT_SWITCH_DISTANCE = 2.0; // meters
 
    private SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
         .withDeadband(MaxSpeed * 0.1)

@@ -69,6 +69,7 @@ public class Belt extends SubsystemBase{
     }
     
     public void off(){
+        
         belt_right.setControl(velocityRequest.withVelocity(0)); //turn off belts
     }
 

@@ -9,6 +9,7 @@ import org.littletonrobotics.junction.LoggedRobot;
 import com.ctre.phoenix6.HootAutoReplay;
 
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 //import edu.wpi.first.cameraserver.CameraServer;
@@ -18,6 +19,7 @@ import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Preferences;
 import edu.wpi.first.wpilibj.RobotController;
+import frc.robot.Vision.LimelightHelpers;
 import frc.robot.commands.ZeroExtensionInstant;
 import frc.robot.commands.ZeroExtensionTeleop;
 import frc.robot.commands.ZeroHood;
@@ -75,6 +77,8 @@ public class Robot extends LoggedRobot {
         powerMonitor = new PowerMonitor(channels);
 
         RobotController.setBrownoutVoltage(6.5);
+
+        LimelightHelpers.setRewindEnabled("limelight", true);
     }
 
     @Override
@@ -119,7 +123,9 @@ public class Robot extends LoggedRobot {
     public void autonomousPeriodic() {}
 
     @Override
-    public void autonomousExit() {}
+    public void autonomousExit() {
+        LimelightHelpers.triggerRewindCapture("limelight", 20);
+    }
 
     @Override
     public void teleopInit() {
@@ -135,13 +141,20 @@ public class Robot extends LoggedRobot {
 
         ShooterLookup.updateTableFromPreferences();
         PassingLookup.updateTableFromPreferences();
+        DriverStation.getMatchTime();
+
     }
 
     @Override
-    public void teleopPeriodic() {}
+    public void teleopPeriodic() {
+        SmartDashboard.putNumber("Match Time", DriverStation.getMatchTime());
+
+    }
 
     @Override
-    public void teleopExit() {}
+    public void teleopExit() {
+        LimelightHelpers.triggerRewindCapture("limelight", 140);
+    }
 
     @Override
     public void testInit() {
